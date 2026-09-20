@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website Editor — Ali Bicer</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="cv-data.js"></script>
+<style>
+body{margin:0;background:#F4F6F4;font-family:'Sora',sans-serif;color:#232821}
+header{background:#17422F;color:white;padding:20px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:18px}
+.dl{background:#E2B33C;color:#17422F;border:none;font-family:inherit;font-size:14px;font-weight:800;padding:12px 22px;border-radius:8px;cursor:pointer}
+.dl:hover{background:#EBBC4E}
+main{max-width:900px;margin:0 auto;padding:28px 24px 80px}
+.help{background:#FDF6E3;border:1px solid #E8D9A8;border-radius:10px;padding:16px 20px;font-size:13.5px;line-height:1.7;margin-bottom:24px}
+details{background:white;border:1px solid #DFE3DE;border-radius:10px;margin-bottom:14px;overflow:hidden}
+summary{cursor:pointer;padding:16px 20px;font-weight:800;font-size:15px;color:#17422F;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::after{content:"▾";color:#C99A2E}
+.body{padding:0 20px 20px}
+.item{border:1px solid #EAE7E0;border-radius:8px;padding:14px;margin-bottom:10px;background:#FBFAF7}
+label{display:block;font-size:11px;font-weight:700;color:#6B7268;margin:8px 0 3px}
+input[type=text],textarea,select{width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid #D5D9D4;border-radius:6px;background:white;color:#232821}
+textarea{min-height:70px;resize:vertical;line-height:1.6}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>div{flex:1;min-width:130px}
+.del{background:#F3E2E2;color:#8C3A3A;border:none;font-family:inherit;font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:10px}
+.add{background:#1E5B41;color:white;border:none;font-family:inherit;font-size:12.5px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;margin-top:4px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;margin-top:8px}
+.count{font-size:11px;font-weight:600;color:#8A9089;margin-left:8px}
+.note{font-size:11.5px;color:#8A9089;line-height:1.5;margin:6px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Website Editor — alibicer website</h1>
+  <button class="dl" onclick="download()">⬇ Download updated cv-data.js</button>
+</header>
+<main>
+<div class="help"><b>How to update your website (3 steps):</b><br>
+1. Make your changes below (add, edit, or delete items in any section).<br>
+2. Click the yellow <b>Download updated cv-data.js</b> button (top right).<br>
+3. Go to your GitHub repository page → click <b>Add file → Upload files</b> → drag in the downloaded <b>cv-data.js</b> → click <b>Commit changes</b>. Your website updates in about a minute.<br>
+<span style="color:#9A7418">Tip: to add a lab member's photo, also upload their picture file to the <b>assets/members</b> folder on GitHub, and type its path (e.g. assets/members/jane.jpg) in the Photo box.</span></div>
+<div id="app"></div>
+</main>
+<script>
+const D = window.CVDATA;
+const app = document.getElementById('app');
+function el(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstChild;}
+function bind(input, obj, key, isNum, isBool){
+  input.addEventListener('input', () => {
+    if(isBool) obj[key] = input.checked;
+    else if(isNum) obj[key] = Number(String(input.value).replace(/[^0-9.]/g,'')) || 0;
+    else obj[key] = input.value;
+  });
+}
+function field(obj, key, label, type){
+  const w = el('<div></div>');
+  w.appendChild(el('<label>'+label+'</label>'));
+  let input;
+  if(type==='textarea'){ input = el('<textarea></textarea>'); input.value = obj[key]||''; }
+  else if(type==='check'){ const c = el('<label class="chk"><input type="checkbox"> '+label+'</label>'); input = c.querySelector('input'); input.checked = !!obj[key]; bind(input,obj,key,false,true); return c; }
+  else { input = el('<input type="text">'); input.value = obj[key]==null?'':obj[key]; }
+  bind(input, obj, key, type==='num', false);
+  w.appendChild(input);
+  return w;
+}
+function section(title, list, makeBody, makeNew, extraNote){
+  const d = el('<details><summary>'+title+'<span class="count">'+list.length+' items</span></summary><div class="body"></div></details>');
+  const body = d.querySelector('.body');
+  if(extraNote) body.appendChild(el('<div class="note">'+extraNote+'</div>'));
+  const addBtn = el('<button class="add">+ Add new</button>');
+  addBtn.onclick = () => { list.unshift(makeNew()); render(); d.open = true; };
+  body.appendChild(addBtn);
+  list.forEach((item, i) => {
+    const card = el('<div class="item"></div>');
+    makeBody(card, item);
+    const del = el('<button class="del">Delete this item</button>');
+    del.onclick = () => { if(confirm('Delete this item?')) { list.splice(i,1); render(); d.open = true; } };
+    card.appendChild(del);
+    body.appendChild(card);
+  });
+  return d;
+}
+function pubMeta(p){
+  const m = p.text.match(/\((\d{4})/); p.year = m?+m[1]:null;
+  p.status = /\(In press/i.test(p.text)?'In press':/\(Under Review/i.test(p.text)?'Under review':/\(In preparation/i.test(p.text)?'In preparation':'Published';
+  p.first = /^Bicer, A\./.test(p.text.trim());
+}
+function citationSection(title, list, type){
+  return section(title, list, (card, p) => {
+    const t = field(p, 'text', 'Full citation (APA style, exactly as it should appear)', 'textarea');
+    t.querySelector('textarea').addEventListener('input', () => pubMeta(p));
+    card.appendChild(t);
+  }, () => ({text:'', year:null, status:'Published', first:false, type}),
+  'Year and first-author badge are detected automatically from the citation text.');
+}
+function render(){
+  app.innerHTML = '';
+  app.appendChild(section('News & Highlights', D.news, (card, n) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(n,'date','Date shown (e.g. Oct 2026)'));
+    r.appendChild(field(n,'tag','Small label (e.g. NSF GRANT · PI)'));
+    card.appendChild(r);
+    card.appendChild(field(n,'text','News text','textarea'));
+  }, () => ({date:'', tag:'', text:'', link:''})));
+  app.appendChild(citationSection('Publications — Journal Articles', D.pubs.articles, 'Journal Article'));
+  app.appendChild(citationSection('Publications — Books', D.pubs.books, 'Book'));
+  app.appendChild(citationSection('Publications — Book Chapters', D.pubs.chapters, 'Book Chapter'));
+  app.appendChild(citationSection('Publications — Conference Proceedings', D.pubs.proceedings, 'Conference Proceeding'));
+  app.appendChild(citationSection('Conference Presentations', D.presentations, 'Presentation'));
+  app.appendChild(section('Grants', D.grants, (card, g) => {
+    card.appendChild(field(g,'title','Grant title','textarea'));
+    const r1 = el('<div class="row"></div>');
+    r1.appendChild(field(g,'funder','Funder (e.g. National Science Foundation — IUSE)'));
+    r1.appendChild(field(g,'period','Period (e.g. 2026–2031)'));
+    card.appendChild(r1);
+    const r2 = el('<div class="row"></div>');
+    r2.appendChild(field(g,'amount','Amount in dollars, numbers only (e.g. 1989298)','num'));
+    r2.appendChild(field(g,'role','Role (PI, Co-PI, Advisory Board…)'));
+    card.appendChild(r2);
+    const r3 = el('<div class="row"></div>');
+    const st = el('<div><label>Status</label><select><option>Funded</option><option>Unfunded</option></select></div>');
+    st.querySelector('select').value = g.status; bind(st.querySelector('select'), g, 'status');
+    r3.appendChild(st);
+    const ag = el('<div><label>Agency type (for the filter)</label><select><option>NSF</option><option>IES</option><option>Internal</option><option>Foundation</option><option>State</option><option>Industry</option><option>Other</option></select></div>');
+    ag.querySelector('select').value = g.agency; bind(ag.querySelector('select'), g, 'agency');
+    r3.appendChild(ag);
+    card.appendChild(r3);
+    card.appendChild(field(g,'note','Note (e.g. co-PIs) — optional'));
+    card.appendChild(field(g,'active','Currently active (shows the ACTIVE badge)','check'));
+  }, () => ({title:'',funder:'',agency:'NSF',amount:0,role:'PI',status:'Funded',period:'',active:true,note:''})));
+  app.appendChild(section('Teaching — Courses', D.teaching, (card, c) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(c,'code','Course code (e.g. MASC 351)'));
+    r.appendChild(field(c,'terms','Terms taught (e.g. Fall 2025)'));
+    card.appendChild(r);
+    card.appendChild(field(c,'title','Course title'));
+    const r2 = el('<div class="row"></div>');
+    const inst = el('<div><label>Institution</label><select><option>Texas A&M University</option><option>University of Wyoming</option></select></div>');
+    inst.querySelector('select').value = c.inst; bind(inst.querySelector('select'), c, 'inst');
+    r2.appendChild(inst);
+    const lv = el('<div><label>Level</label><select><option>Graduate</option><option>Undergraduate</option></select></div>');
+    lv.querySelector('select').value = c.level; bind(lv.querySelector('select'), c, 'level');
+    r2.appendChild(lv);
+    card.appendChild(r2);
+  }, () => ({code:'',title:'',terms:'',inst:'Texas A&M University',level:'Graduate'})));
+  app.appendChild(section('Lab — Active Projects', D.lab.projects, (card, p) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(p,'years','Years (e.g. 2026–2031)'));
+    r.appendChild(field(p,'title','Project name'));
+    card.appendChild(r);
+    card.appendChild(field(p,'detail','One-line description (funder, amount, role, what it does)','textarea'));
+  }, () => ({years:'',title:'',detail:''})));
+  app.appendChild(section('Lab — Members', D.lab.members, (card, m) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(m,'name','Name'));
+    r.appendChild(field(m,'role','Role (e.g. Graduate Research Assistant)'));
+    card.appendChild(r);
+    card.appendChild(field(m,'bio','Short bio','textarea'));
+    card.appendChild(field(m,'photo','Photo path (e.g. assets/members/jane.jpg) — leave empty to show initials'));
+  }, () => ({name:'',role:'Graduate Research Assistant',bio:'',photo:''})));
+  app.appendChild(section('CV page — Appointments', D.cvSummary.appointments, (card, i) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(i,'years','Years'));
+    card.appendChild(r);
+    card.appendChild(field(i,'text','Text','textarea'));
+  }, () => ({years:'',text:''})));
+  app.appendChild(section('CV page — Selected Honors', D.cvSummary.honors, (card, i) => {
+    const r = el('<div class="row"></div>');
+    r.appendChild(field(i,'years','Year'));
+    card.appendChild(r);
+    card.appendChild(field(i,'text','Text','textarea'));
+  }, () => ({years:'',text:''})));
+}
+function download(){
+  D.lab.members.forEach(m => { if(m.photo === '') m.photo = null; });
+  const blob = new Blob(['window.CVDATA = ' + JSON.stringify(D) + ';'], {type:'text/javascript'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cv-data.js';
+  a.click();
+  alert('cv-data.js downloaded!\n\nNow: open your GitHub repository \u2192 Add file \u2192 Upload files \u2192 drag the downloaded cv-data.js in \u2192 Commit changes.\n\nThe website updates itself in about a minute.');
+}
+render();
+</script>
+</body>
+</html>

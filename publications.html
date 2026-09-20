@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet">
+<script src="cv-data.js"></script>
+<style>body{margin:0;background:#F4F6F4;font-family:'Sora',sans-serif;color:#232821}a{color:#1E5B41}a:hover{color:#C99A2E}input{font-family:'Sora',sans-serif}</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column;">
+<div style="background: #17422F; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 48px;">
+  <a href="index.html" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <span style="display: grid; grid-template-columns: 9px 9px; grid-template-rows: 9px 9px; gap: 2px;"><span style="background: white;"></span><span style="background: white;"></span><span style="background: white;"></span><span style="background: #E2B33C; transform: rotate(45deg) scale(0.82);"></span></span>
+    <span style="font-weight: 800; font-size: 15px; color: white;">Ali Bicer, Ph.D.</span>
+  </a>
+  <div style="display: flex; gap: 20px; font-size: 12.5px; font-weight: 600; flex-wrap: wrap;">
+    <a href="index.html" style="text-decoration: none; color: #B9CDBF;">About</a>
+    <a href="grants.html" style="text-decoration: none; color: #B9CDBF;">Grants</a>
+    <a href="publications.html" style="text-decoration: none; color: #EBBC4E;">Publications</a>
+    <a href="presentations.html" style="text-decoration: none; color: #B9CDBF;">Presentations</a>
+    <a href="teaching.html" style="text-decoration: none; color: #B9CDBF;">Teaching</a>
+    <a href="lab.html" style="text-decoration: none; color: #B9CDBF;">CMTL² Lab</a>
+    <a href="cv.html" style="text-decoration: none; color: #B9CDBF;">CV</a>
+  </div>
+</div>
+<div style="max-width: 980px; margin: 0 auto; padding: 48px; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; gap: 22px;">
+  <h1 style="margin: 0; font-family: 'Lora', serif; font-size: 34px; font-weight: 600;">Publications</h1>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <sc-for list="{{ cats }}" as="c" hint-placeholder-count="4">
+      <button onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button>
+    </sc-for>
+  </div>
+  <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+    <input value="{{ q }}" onInput="{{ setQ }}" placeholder="Search by author, title, journal…" style="flex: 1; min-width: 260px; padding: 11px 16px; border: 1px solid #D9D4C8; border-radius: 8px; font-size: 14px; background: white; color: #232821; outline-color: #1E5B41;">
+    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #5C6660; cursor: pointer;"><input type="checkbox" checked="{{ firstOnly }}" onChange="{{ toggleFirst }}" style="accent-color: #1E5B41; width: 16px; height: 16px;">First-author only</label>
+    <div style="font-size: 12.5px; color: #8A9089;">{{ count }} results</div>
+  </div>
+  <div style="display: flex; flex-direction: column;">
+    <sc-for list="{{ items }}" as="p" hint-placeholder-count="8">
+      <div style="display: flex; gap: 20px; padding: 16px 4px; border-bottom: 1px solid #EFECE4;">
+        <div style="width: 68px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; align-items: flex-start;">
+          <span style="font-size: 13px; font-weight: 800; color: #1E5B41;">{{ p.yearLabel }}</span>
+          <sc-if value="{{ p.first }}" hint-placeholder-val="{{ false }}"><span style="font-size: 9px; font-weight: 800; color: #C99A2E; border: 1px solid #E2B33C; border-radius: 4px; padding: 2px 5px;">1st AU</span></sc-if>
+        </div>
+        <div style="font-size: 14px; line-height: 1.7; color: #3A423C;">{{ p.text }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+<div style="margin-top: auto; background: #17422F; padding: 22px 48px; font-size: 12px; color: #B9CDBF;">Ali Bicer · Texas A&amp;M University · alibicer@tamu.edu</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { q: '', cat: 'articles', firstOnly: false };
+  componentDidMount() { if (!window.CVDATA) this.t = setInterval(() => { if (window.CVDATA) { clearInterval(this.t); this.forceUpdate(); } }, 100); }
+  renderVals() {
+    const D = window.CVDATA || { pubs: {} };
+    const defs = [['articles', 'Journal Articles'], ['books', 'Books'], ['chapters', 'Book Chapters'], ['proceedings', 'Conference Proceedings']];
+    const base = 'padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif;';
+    const cats = defs.map(([key, label]) => ({
+      label: label + (D.pubs[key] ? ' (' + D.pubs[key].length + ')' : ''),
+      pick: () => this.setState({ cat: key }),
+      style: this.state.cat === key ? base + 'background:#1E5B41;color:white;border:1.5px solid #1E5B41;' : base + 'background:white;color:#5C6660;border:1.5px solid #D9D4C8;'
+    }));
+    const q = this.state.q.toLowerCase();
+    let items = (D.pubs[this.state.cat] || []).filter(p =>
+      (!this.state.firstOnly || p.first) && (!q || p.text.toLowerCase().includes(q)));
+    items = items.map(p => ({ ...p, yearLabel: p.year ? String(p.year) : (p.status === 'Published' ? '—' : p.status) }));
+    return {
+      cats, items, count: items.length, q: this.state.q,
+      firstOnly: this.state.firstOnly,
+      setQ: e => this.setState({ q: e.target.value }),
+      toggleFirst: e => this.setState({ firstOnly: e.target.checked })
+    };
+  }
+}
+</script>
+</body>
+</html>
